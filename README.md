@@ -1,5 +1,3 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
-
 ## Getting Started
 
 First, run the development server:
@@ -20,7 +18,6 @@ Second, i create a bookers mockups to sign in:
 email: admin_one@gmail.com
 password: 12345
 #or
-
 email: admin_two@gmail.com
 password: 56789
 ```
