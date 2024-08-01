@@ -1,4 +1,4 @@
-import axios from "axios";
+import axiosInstance from "../_lib/axios/axiosInstance";
 
 interface SignInResponse {
   id: string;
@@ -9,7 +9,7 @@ interface SignInResponse {
 interface BookingRequest {
   auditoriumId: string;
   schedule: string;
-  seatNumber?: number;
+  seatNumber?: number[];
   seatId: string;
   bookerId: string;
   movieId: string;
@@ -23,7 +23,7 @@ export const bookingService = async ({
   seatNumber,
   movieId,
 }: BookingRequest): Promise<SignInResponse> => {
-  const { data } = await axios.post(
+  const { data } = await axiosInstance.post(
     "http://localhost:3001/v1/bookings",
     {
       auditoriumId,
