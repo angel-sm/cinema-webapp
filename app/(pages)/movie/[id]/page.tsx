@@ -13,6 +13,7 @@ import useFetch from "@/app/_hooks/useRequest";
 import { Auditorium, Movie, useMovie } from "./useMovie";
 import { bookingService } from "@/app/_services/bookingService";
 import { toast } from "sonner";
+import axiosInstance from "@/app/_lib/axios/axiosInstance";
 
 interface Booker {
   email: string;
@@ -73,6 +74,7 @@ function MovieReservation() {
   });
 
   const movieId = params?.id as string;
+  watch();
 
   const { data: movie } = useFetch<Movie>(
     `http://localhost:3001/v1/movies/${params?.id}`
@@ -82,33 +84,43 @@ function MovieReservation() {
     `http://localhost:3001/v1/auditoriums`
   );
 
-  const { data: bookings } = useFetch<Array<Reservation>>(
-    `http://localhost:3001/v1/bookings?schedule=${schedule}&auditorium=${auditorium?.id}`,
-    [schedule, auditorium]
-  );
-
-  watch();
-
   useEffect(() => {
-    if (auditoriumsResponse?.length) {
-      setAuditoriums(auditoriumsResponse);
+    if (auditoriumsResponse?.length && !auditoriums.length) {
+      setAuditoriums(() => [...auditoriumsResponse]);
 
       const auditoriumATotalSeats = auditoriumsResponse[0].seats;
 
       setValue("auditoriumId", auditoriumsResponse[0].id);
       setValue("schedule", auditoriumsResponse[0].schedules[0]);
 
-      setAuditorium(() => auditoriumsResponse[0]);
+      setAuditorium(() => ({ ...auditoriumsResponse[0] }));
       setSchedule(() => auditoriumsResponse[0].schedules[0]);
-      setSeatsFilled(
-        () => new Set(bookings?.map((booking) => booking.seat.seatNumber))
-      );
       generateSeatList(auditoriumATotalSeats, setSeats);
     }
-  }, [auditoriumsResponse, bookings]);
+  }, [auditoriumsResponse]);
+
+  useEffect(() => {
+    if (auditorium && schedule) {
+      axiosInstance
+        .get(
+          `http://localhost:3001/v1/bookings?schedule=${schedule}&auditorium=${auditorium?.id}`
+        )
+        .then((data) => {
+          const bookings = data.data as any[];
+          setSeatsFilled(
+            () => new Set(bookings?.map((booking) => booking.seat.seatNumber))
+          );
+        });
+    }
+  }, [auditorium, schedule]);
 
   useEffect(() => {
     const subscription = watch((value, { name }) => {
+      if (name === "schedule") {
+        const scheduleValue = value.schedule as string;
+        setSchedule(scheduleValue);
+      }
+
       if (name === "auditoriumId") {
         if (value.auditoriumId) {
           const current = value.auditoriumId as string;
@@ -118,14 +130,19 @@ function MovieReservation() {
           );
 
           if (auditoriumSelecte) {
-            setAuditorium(auditoriumSelecte);
-            generateSeatList(auditoriumSelecte.seats, setSeats);
+            setAuditorium(() => ({ ...auditoriumSelecte }));
           }
         }
       }
     });
     return () => subscription.unsubscribe();
   }, [watch, auditoriums]);
+
+  useEffect(() => {
+    setSeatsSelected(new Set([]));
+    const seats = auditorium?.seats as number;
+    generateSeatList(seats, setSeats);
+  }, [auditorium, schedule]);
 
   const handleSeatSelected = (seat: number) => {
     if (seatsSelected.has(seat)) {
@@ -148,13 +165,16 @@ function MovieReservation() {
         auditoriumId: data?.auditoriumId,
         bookerId: data?.bookerId,
         schedule: data?.schedule,
-        seatNumber: 5,
+        seatNumber: Array.from(seatsSelected),
         seatId: "",
         movieId,
       }),
       {
         loading: "Loading...",
-        success: "Booking has been reserved",
+        success: () => {
+          router.push("/booking");
+          return "Booking has been reserved";
+        },
         error: "Error",
       }
     );

@@ -28,7 +28,7 @@ const useFetch = <T>(url: string, dependency: any[] = []): FetchState<T> => {
 
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, ...dependency]);
+  }, []);
 
   return { data, error, loading };
 };
